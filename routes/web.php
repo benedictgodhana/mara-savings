@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MySavingsAccountController;
 use App\Http\Controllers\MySavingsGoalController;
 use App\Http\Controllers\ProfileController;
@@ -11,9 +12,10 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
+
 
 Route::middleware('auth')->group(function () {
     Route::put('/savings-accounts/{account}', [SavingsAccountController::class, 'update'])->name('savings-accounts.update');
@@ -54,6 +56,52 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+
+    Route::get('/my-transactions', [\App\Http\Controllers\MyTransactionController::class, 'index'])->name('transactions.index');
+    Route::get('/my-transactions/{transaction}/edit', [\App\Http\Controllers\MyTransactionController::class, 'edit'])->name('my-transactions.edit');
+    Route::put('/my-transactions/{transaction}', [\App\Http\Controllers\MyTransactionController::class, 'update'])->name('my-transactions.update');
+    Route::delete('/my-transactions/{transaction}', [\App\Http\Controllers\MyTransactionController::class, 'destroy'])->name('my-transactions.destroy');
+    Route::post('/transactions/export', [App\Http\Controllers\MyTransactionController::class, 'export'])
+    ->name('transactions.export');
+
+    Route::get('/transactions/{transaction}', [App\Http\Controllers\MyTransactionController::class, 'show'])
+        ->name('transactions.show');
+
+
+        Route::get('/profile/skip-completion', [App\Http\Controllers\ProfileController::class, 'skipProfileCompletion'])
+        ->name('skip-profile-completion');
+
+        Route::post('/profile/complete', [App\Http\Controllers\ProfileController::class, 'completeProfile'])
+        ->name('profile.complete');
+
+
+           // User preferences
+    Route::put('/preferences/update', [App\Http\Controllers\PreferencesController::class, 'update'])
+    ->name('preferences.update');
+
+    // User preferences
+    Route::put('/preferences', [App\Http\Controllers\PreferencesController::class, 'reset'])
+    ->name('preferences.reset');
+
+
+    // Update profile information
+    Route::put('/profile', [App\Http\Controllers\ProfileController::class, 'update'])
+        ->name('profile.update');
+
+    // Update profile photo
+    Route::post('/profile/photo', [App\Http\Controllers\ProfileController::class, 'updatePhoto'])
+        ->name('profile.photo');
+
+    // Password update
+    Route::put('/profile/password', [App\Http\Controllers\ProfileController::class, 'updatePassword'])
+        ->name('password.update');
+
+
+
+
+
+
 });
 
 require __DIR__.'/auth.php';

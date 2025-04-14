@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class SavingsAccountController extends Controller
@@ -21,33 +22,34 @@ class SavingsAccountController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'balance' => 'required|numeric|min:0',
             'status' => 'required|in:active,inactive,frozen',
             'type' => 'required|in:basic,goal_based,fixed_term',
             'interest_rate' => 'required|numeric|min:0',
-            'user_id' => 'required|exists:users,id', // Ensure the user_id is valid
+            'user_id' => 'required|exists:users,id',
         ]);
 
-        // Get the last savings account number (if any)
-        $lastAccount = SavingsAccount::orderBy('account_number', 'desc')->first();
-        $lastAccountNumber = $lastAccount ? (int)substr($lastAccount->account_number, -6) : 0;
+        $account = DB::transaction(function () use ($request) {
+            $lastAccount = SavingsAccount::orderBy('id', 'desc')->lockForUpdate()->first(); // row lock
 
-        // Generate new account number
-        $newAccountNumber = str_pad($lastAccountNumber + 1, 6, '0', STR_PAD_LEFT);
+            $lastNumber = $lastAccount ? (int)substr($lastAccount->account_number, -6) : 0;
+            $newAccountNumber = str_pad($lastNumber + 1, 6, '0', STR_PAD_LEFT);
 
-        // Create new savings account
-        SavingsAccount::create([
-            'user_id' => $request->user_id,
-            'account_number' => $newAccountNumber,  // Assign the new generated account number
-            'balance' => $request->balance,
-            'status' => $request->status,
-            'type' => $request->type,
-            'interest_rate' => $request->interest_rate,
-        ]);
+            return SavingsAccount::create([
+                'user_id' => $request->user_id,
+                'account_number' => $newAccountNumber,
+                'balance' => 0,
+                'status' => $request->status,
+                'type' => $request->type,
+                'interest_rate' => $request->interest_rate,
+            ]);
+        });
+
+        // Notify user
+        $user = \App\Models\User::find($request->user_id);
+        $user->notify(new \App\Notifications\SavingsAccountCreated());
 
         return redirect()->route('savings-accounts.index')->with('success', 'Savings account created.');
     }
-
 
     public function update(Request $request, $id)
     {

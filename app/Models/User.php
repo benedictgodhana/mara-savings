@@ -28,6 +28,13 @@ class User extends Authenticatable
         'date_of_birth',
         'status',
         'profile_photo_path',
+        'occupation',
+        'income_range',
+        'national_id',
+        'profile_completed',
+        'email_verified_at',
+        'remember_token',
+
 
     ];
 
@@ -53,4 +60,45 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+
+
+    public function savingsAccounts()
+{
+    return $this->hasMany(\App\Models\SavingsAccount::class);
+}
+
+protected $casts = [
+    'date_of_birth' => 'date',
+];
+
+
+
+/**
+ * Get the user's preferences.
+ */
+public function preferences()
+{
+    return $this->hasOne(UserPreference::class);
+}
+
+
+/**
+ * Get the user's transactions.
+ */
+
+public function transactions()
+{
+    return $this->hasMany(Transaction::class);
+}
+
+/**
+ * Get the user's savings goals.
+ */
+public function savingsGoals()
+{
+    return $this->hasMany(SavingsGoal::class);
+
+}
+
 }

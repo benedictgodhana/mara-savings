@@ -32,99 +32,116 @@ class MySavingsAccountController extends Controller
      * Process a deposit to the savings account
      */
     public function deposit(Request $request, $id)
-{
-    $request->validate([
-        'amount' => 'required|numeric|min:1',
-        'description' => 'nullable|string|max:255',
-    ]);
-
-    $account = SavingsAccount::findOrFail($id);
-
-    // Ensure user owns this account
-    if ($account->user_id !== Auth::id()) {
-        return back()->with('error', 'Unauthorized action.');
-    }
-
-    try {
-        DB::beginTransaction();
-
-        // Update account balance
-        $newBalance = $account->balance + $request->amount;
-        $account->balance = $newBalance;
-        $account->save();
-
-        // Generate a unique reference number for the transaction
-        $referenceNumber = 'REF-' . strtoupper(uniqid(date('Ymd') . '-', true));
-
-        // Record transaction
-        Transaction::create([
-            'user_id' => Auth::id(),
-            'savings_account_id' => $account->id,
-            'reference_number' => $referenceNumber, // Store the reference number
-            'amount' => $request->amount,
-            'type' => 'deposit',
-            'status' => 'completed', // You can modify this based on your application logic
-            'goal_id' => $request->goal_id ?? null, // Optional: use if there's a goal ID tied to the transaction
-            'description' => $request->description ?? 'Deposit to savings account',
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:1',
+            'description' => 'nullable|string|max:255',
         ]);
 
-        DB::commit();
+        $account = SavingsAccount::findOrFail($id);
 
-        return redirect()->route('savings.account')
-            ->with('success', 'Successfully deposited KES ' . number_format($request->amount, 2) . ' to your savings account. Reference: ' . $referenceNumber);
-    } catch (\Exception $e) {
-        DB::rollBack();
-        return back()->with('error', 'Transaction failed: ' . $e->getMessage());
+        // Ensure user owns this account
+        if ($account->user_id !== Auth::id()) {
+            return back()->with('error', 'Unauthorized action.');
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Update account balance
+            $newBalance = $account->balance + $request->amount;
+            $account->balance = $newBalance;
+            $account->save();
+
+            // Generate a unique reference number for the transaction
+            $referenceNumber = 'REF-' . strtoupper(uniqid(date('Ymd') . '-', true));
+
+            // Record transaction
+            Transaction::create([
+                'user_id' => Auth::id(),
+                'savings_account_id' => $account->id,
+                'reference_number' => $referenceNumber,
+                'amount' => $request->amount,
+                'type' => 'deposit',
+                'status' => 'completed',
+                'goal_id' => $request->goal_id ?? null,
+                'description' => $request->description ?? 'Deposit to savings account',
+            ]);
+
+            DB::commit();
+
+            // Send notification email
+            $user = \App\Models\User::find(Auth::id());
+
+            if ($user) {
+                $user->notify(new \App\Notifications\DepositOrWithdrawalNotification($request->amount, 'Deposit', $referenceNumber));
+            } else {
+                \Log::error('User not found for ID: ' . Auth::id());
+            }
+
+            return redirect()->route('savings.account')
+                ->with('success', 'Successfully deposited KES ' . number_format($request->amount, 2) . ' to your savings account. Reference: ' . $referenceNumber);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Transaction failed: ' . $e->getMessage());
+        }
     }
-}
 
-public function withdraw(Request $request, $id)
-{
-    $account = SavingsAccount::findOrFail($id);
+    public function withdraw(Request $request, $id)
+    {
+        $account = SavingsAccount::findOrFail($id);
 
-    $request->validate([
-        'amount' => 'required|numeric|min:1|max:' . $account->balance,
-        'description' => 'nullable|string|max:255',
-    ]);
-
-    // Ensure user owns this account
-    if ($account->user_id !== Auth::id()) {
-        return back()->with('error', 'Unauthorized action.');
-    }
-
-    try {
-        DB::beginTransaction();
-
-        // Update account balance
-        $newBalance = $account->balance - $request->amount;
-        $account->balance = $newBalance;
-        $account->save();
-
-        // Generate a unique reference number for the transaction
-        $referenceNumber = 'REF-' . strtoupper(uniqid(date('Ymd') . '-', true));
-
-        // Record transaction
-        Transaction::create([
-            'user_id' => Auth::id(),
-            'savings_account_id' => $account->id,
-            'reference_number' => $referenceNumber, // Store the reference number
-            'amount' => $request->amount,
-            'type' => 'withdrawal',
-            'status' => 'completed', // You can modify this based on your application logic
-            'goal_id' => $request->goal_id ?? null, // Optional: use if there's a goal ID tied to the transaction
-            'description' => $request->description ?? 'Withdrawal from savings account',
+        $request->validate([
+            'amount' => 'required|numeric|min:1|max:' . $account->balance,
+            'description' => 'nullable|string|max:255',
         ]);
 
-        DB::commit();
+        // Ensure user owns this account
+        if ($account->user_id !== Auth::id()) {
+            return back()->with('error', 'Unauthorized action.');
+        }
 
-        return redirect()->route('savings.account')
-            ->with('success', 'Successfully withdrew KES ' . number_format($request->amount, 2) . ' from your savings account. Reference: ' . $referenceNumber);
-    } catch (\Exception $e) {
-        DB::rollBack();
-        return back()->with('error', 'Transaction failed: ' . $e->getMessage());
+        try {
+            DB::beginTransaction();
+
+            // Update account balance
+            $newBalance = $account->balance - $request->amount;
+            $account->balance = $newBalance;
+            $account->save();
+
+            // Generate a unique reference number for the transaction
+            $referenceNumber = 'REF-' . strtoupper(uniqid(date('Ymd') . '-', true));
+
+            // Record transaction
+            Transaction::create([
+                'user_id' => Auth::id(),
+                'savings_account_id' => $account->id,
+                'reference_number' => $referenceNumber,
+                'amount' => $request->amount,
+                'type' => 'withdrawal',
+                'status' => 'completed',
+                'goal_id' => $request->goal_id ?? null,
+                'description' => $request->description ?? 'Withdrawal from savings account',
+            ]);
+
+            DB::commit();
+
+            // Send notification email to the currently authenticated user
+            $user = \App\Models\User::find(Auth::id());
+            if ($user) {
+                $user->notify(new \App\Notifications\DepositOrWithdrawalNotification($request->amount, 'Withdrawal', $referenceNumber));
+            } else {
+                // Handle the case where the user is not found (you can log this, show an error, etc.)
+                \Log::error('User not found for ID: ' . Auth::id());
+            }
+
+            return redirect()->route('savings.account')
+                ->with('success', 'Successfully withdrew KES ' . number_format($request->amount, 2) . ' from your savings account. Reference: ' . $referenceNumber);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Transaction failed: ' . $e->getMessage());
+        }
     }
-}
-
 
     /**
      * Get account balance history for chart

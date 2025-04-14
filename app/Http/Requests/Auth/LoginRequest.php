@@ -41,11 +41,21 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        if (!Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
                 'email' => trans('auth.failed'),
+            ]);
+        }
+
+        $user = Auth::user();
+
+        // ✅ Check if the user has a savings account
+        if ($user->savingsAccounts()->count() === 0) {
+            Auth::logout(); // Log out the user immediately
+            throw ValidationException::withMessages([
+                'email' => 'Your account has no savings account yet. Please contact support or wait for it to be created.',
             ]);
         }
 

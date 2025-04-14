@@ -22,13 +22,22 @@ class AuthenticatedSessionController extends Controller
     /**
      * Handle an incoming authentication request.
      */
-    public function store(LoginRequest $request): RedirectResponse
+    public function store(LoginRequest $request)
     {
         $request->authenticate();
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        $user = Auth::user();
+
+        // ✅ If user has no savings account, log them out and flash a message
+        if ($user->savingsAccounts()->count() === 0) {
+            Auth::logout();
+
+            return back()->with('error', 'Your account has no savings account yet. Please contact support or wait for it to be created.');
+        }
+
+        return redirect()->intended(route('dashboard'));
     }
 
     /**

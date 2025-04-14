@@ -76,10 +76,7 @@
 </div>
 
 
-                <div class="mb-4">
-                    <label class="block text-gray-700">Balance</label>
-                    <input type="number" name="balance" step="0.01" min="0" required class="w-full border rounded px-3 py-2 mt-1" />
-                </div>
+                
 
                 <div class="mb-4">
                     <label class="block text-gray-700">Status</label>

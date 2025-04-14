@@ -73,6 +73,12 @@ class RolesAndPermissionsSeeder extends Seeder
             'delete audit logs',
         ];
 
+        // Create dashboard permissions
+        $dashboardPermissions = [
+            'view any dashboard stats',
+            'view own dashboard stats',
+        ];
+
         // Create system permissions
         $systemPermissions = [
             'access admin panel',
@@ -88,6 +94,7 @@ class RolesAndPermissionsSeeder extends Seeder
             $transactionPermissions,
             $paymentMethodPermissions,
             $auditLogPermissions,
+            $dashboardPermissions,
             $systemPermissions
         );
 
@@ -119,6 +126,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'create payment method',
             'edit payment method',
             'view audit logs',
+            'view any dashboard stats',
             'access admin panel',
             'generate reports',
         ]);
@@ -133,6 +141,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'approve transaction',
             'view payment methods',
             'view audit logs',
+            'view any dashboard stats',
             'generate reports',
         ]);
 
@@ -149,6 +158,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'view own transaction',
             'create transaction',
             'view payment methods',
+            'view own dashboard stats',
         ]);
     }
 }

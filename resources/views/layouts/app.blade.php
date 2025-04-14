@@ -616,16 +616,6 @@
     </div>
     @endcan
 
-    <!-- Payment Methods -->
-    @can('view payment methods')
-    <div class="nav-item">
-        <a href="payment-methods" class="nav-link">
-            <i class="fas fa-credit-card nav-icon"></i>
-            <span class="nav-text">Payment Methods</span>
-        </a>
-    </div>
-    @endcan
-
     <!-- Reports & Analytics -->
     @can('generate reports')
     <div class="nav-item">
@@ -711,7 +701,7 @@
                         <div class="user-avatar">
                             <i class="fas fa-user"></i>
                         </div>
-                        <span>John Doe</span>
+                        <span>{{ auth()->user()->name }}</span>
                         <i class="fas fa-chevron-down ml-1 text-sm"></i>
                     </div>
                     <div class="dropdown-menu" :class="{'show': userDropdownOpen}" @click.away="userDropdownOpen = false">
